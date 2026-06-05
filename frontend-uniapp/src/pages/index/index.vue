@@ -51,23 +51,10 @@ async function handleLogin() {
 </script>
 
 <template>
-  <view class="page login-page">
-    <view class="hero-card">
-      <text class="eyebrow">Mini Program AI Support</text>
-      <text class="title">智能客服小程序</text>
-      <text class="subtitle">登录后即可通过后端调用 Dify 知识库和第三方模型。</text>
-
-      <view class="stack">
-        <text>微信小程序</text>
-        <text>RuoYi 后端</text>
-        <text>Dify 知识库</text>
-        <text>第三方模型</text>
-      </view>
-    </view>
-
-    <view class="form-card">
-      <text class="form-title">账号登录</text>
-      <text class="form-hint">当前先复用本地开发账号，后续可以平滑切到微信登录或手机号登录。</text>
+  <view class="login-page">
+    <view class="login-card">
+      <text class="title">智能客服登录</text>
+      <text class="subtitle">登录后即可进入问答界面</text>
 
       <view class="field">
         <text class="label">账号</text>
@@ -86,122 +73,78 @@ async function handleLogin() {
 
       <text v-if="error" class="error">{{ error }}</text>
 
-      <button class="primary-btn" :loading="loading" @click="handleLogin">
-        {{ loading ? "登录中..." : "进入智能客服" }}
+      <button class="submit-btn" :loading="loading" @click="handleLogin">
+        {{ loading ? "登录中..." : "登录" }}
       </button>
     </view>
   </view>
 </template>
 
 <style scoped lang="scss">
-.page {
-  min-height: 100vh;
-  padding: 40rpx 28rpx 56rpx;
-  background:
-    radial-gradient(circle at top left, rgba(27, 94, 32, 0.18), transparent 34%),
-    radial-gradient(circle at top right, rgba(194, 24, 91, 0.14), transparent 30%),
-    linear-gradient(180deg, #f5f7ef 0%, #eef4ff 100%);
-}
-
 .login-page {
+  min-height: 100vh;
+  padding: 32rpx;
   display: flex;
-  flex-direction: column;
-  gap: 28rpx;
+  align-items: center;
+  background: #f5f7fb;
 }
 
-.hero-card,
-.form-card {
-  background: rgba(255, 255, 255, 0.92);
-  border-radius: 28rpx;
-  padding: 32rpx 28rpx;
-  box-shadow: 0 24rpx 60rpx rgba(19, 32, 68, 0.08);
-}
-
-.hero-card {
-  display: flex;
-  flex-direction: column;
-  gap: 16rpx;
-}
-
-.eyebrow {
-  font-size: 22rpx;
-  letter-spacing: 2rpx;
-  color: #4f6b46;
-  text-transform: uppercase;
+.login-card {
+  width: 100%;
+  padding: 40rpx 32rpx;
+  border-radius: 24rpx;
+  background: #ffffff;
+  box-shadow: 0 20rpx 40rpx rgba(30, 44, 82, 0.08);
 }
 
 .title {
-  font-size: 54rpx;
-  line-height: 1.12;
+  display: block;
+  font-size: 40rpx;
   font-weight: 700;
-  color: #1b2743;
+  color: #1c2940;
 }
 
-.subtitle,
-.form-hint {
-  font-size: 28rpx;
-  line-height: 1.6;
-  color: #4f5872;
-}
-
-.stack {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 18rpx;
-  margin-top: 10rpx;
-}
-
-.stack text {
-  padding: 18rpx 20rpx;
-  border-radius: 18rpx;
-  background: #f1f6ff;
-  color: #244061;
-  font-size: 24rpx;
-}
-
-.form-card {
-  display: flex;
-  flex-direction: column;
-  gap: 20rpx;
-}
-
-.form-title {
-  font-size: 38rpx;
-  font-weight: 700;
-  color: #14213d;
+.subtitle {
+  display: block;
+  margin-top: 12rpx;
+  margin-bottom: 32rpx;
+  font-size: 26rpx;
+  color: #6b7280;
 }
 
 .field {
   display: flex;
   flex-direction: column;
   gap: 12rpx;
+  margin-bottom: 24rpx;
 }
 
 .label {
   font-size: 26rpx;
-  color: #31415e;
+  color: #334155;
 }
 
 .input {
-  height: 92rpx;
-  padding: 0 26rpx;
-  border-radius: 20rpx;
-  background: #f6f8fb;
+  height: 88rpx;
+  padding: 0 24rpx;
+  border-radius: 18rpx;
+  background: #f8fafc;
   font-size: 30rpx;
-  color: #17233a;
+  color: #0f172a;
 }
 
 .error {
-  font-size: 26rpx;
-  color: #c62828;
+  display: block;
+  margin-bottom: 20rpx;
+  font-size: 24rpx;
+  color: #dc2626;
 }
 
-.primary-btn {
+.submit-btn {
   margin-top: 8rpx;
-  border-radius: 999rpx;
-  background: linear-gradient(135deg, #1f7a4c 0%, #2e90fa 100%);
-  color: #fff;
+  border-radius: 18rpx;
+  background: #2563eb;
+  color: #ffffff;
   font-size: 30rpx;
-  font-weight: 600;
 }
 </style>

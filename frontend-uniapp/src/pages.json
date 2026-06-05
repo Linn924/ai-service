@@ -3,22 +3,22 @@
     {
       "path": "pages/index/index",
       "style": {
-        "navigationBarTitleText": "智能客服登录",
-        "navigationBarBackgroundColor": "#f5f7ef"
+        "navigationBarTitleText": "登录",
+        "navigationBarBackgroundColor": "#F5F7FB"
       }
     },
     {
       "path": "pages/chat/index",
       "style": {
-        "navigationBarTitleText": "智能客服",
-        "navigationBarBackgroundColor": "#f4f6f2"
+        "navigationBarTitleText": "问答",
+        "navigationBarBackgroundColor": "#F5F7FB"
       }
     }
   ],
   "globalStyle": {
     "navigationBarTextStyle": "black",
-    "navigationBarTitleText": "智能客服小程序",
-    "navigationBarBackgroundColor": "#F5F7EF",
-    "backgroundColor": "#F5F7EF"
+    "navigationBarTitleText": "智能客服",
+    "navigationBarBackgroundColor": "#F5F7FB",
+    "backgroundColor": "#F5F7FB"
   }
 }
