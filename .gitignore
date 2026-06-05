@@ -1,0 +1,33 @@
+# Local secrets
+.dify-app-key
+.env
+.env.*
+!.env.example
+
+# Runtime logs and local state
+logs/
+docker-data/
+*.log
+
+# OS / editor
+.DS_Store
+.idea/
+.vscode/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# Node and frontend outputs
+node_modules/
+dist/
+unpackage/
+
+# Java build outputs
+target/
+build/
+
+# Weixin / mini-program temporary files
+*.tmp
+*.bak
