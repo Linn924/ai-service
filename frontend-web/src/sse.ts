@@ -45,8 +45,20 @@ export async function postSse(
   const reader = response.body.getReader()
   const decoder = new TextDecoder()
   let buffer = ''
+  let finished = false
 
-  while (true) {
+  const handlePayload = (payload: StreamPayload) => {
+    onMessage(payload)
+    if (payload.type === 'done') {
+      finished = true
+      void reader.cancel()
+    }
+    if (payload.type === 'error') {
+      throw new Error(payload.message || 'Streaming failed')
+    }
+  }
+
+  while (!finished) {
     const { done, value } = await reader.read()
     buffer += decoder.decode(value || new Uint8Array(), { stream: !done })
 
@@ -55,14 +67,14 @@ export async function postSse(
 
     for (const part of parts) {
       for (const payload of parseBlock(part.trim())) {
-        onMessage(payload)
+        handlePayload(payload)
       }
     }
 
     if (done) {
       if (buffer.trim()) {
         for (const payload of parseBlock(buffer.trim())) {
-          onMessage(payload)
+          handlePayload(payload)
         }
       }
       break

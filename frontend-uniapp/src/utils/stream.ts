@@ -72,15 +72,27 @@ export async function streamByFetch(
   const reader = response.body.getReader();
   const decoder = new TextDecoder();
   let buffer = "";
+  let finished = false;
 
-  while (true) {
+  const handlePayload = (payload: StreamPayload) => {
+    handlers.onMessage(payload);
+    if (payload.type === "done") {
+      finished = true;
+      void reader.cancel();
+    }
+    if (payload.type === "error") {
+      throw new Error(payload.message || "Streaming failed");
+    }
+  };
+
+  while (!finished) {
     const { done, value } = await reader.read();
     buffer += decoder.decode(value || new Uint8Array(), { stream: !done });
-    buffer = parseBuffer(buffer, handlers.onMessage);
+    buffer = parseBuffer(buffer, handlePayload);
 
     if (done) {
       if (buffer.trim()) {
-        parseBuffer(`${buffer}\n\n`, handlers.onMessage);
+        buffer = parseBuffer(`${buffer}\n\n`, handlePayload);
       }
       break;
     }
@@ -96,6 +108,7 @@ export function streamByWeixinRequest(
   const wxRef = (globalThis as Record<string, unknown>).wx as {
     request: (options: Record<string, unknown>) => {
       onChunkReceived?: (callback: (result: { data: ArrayBuffer }) => void) => void;
+      abort?: () => void;
     };
   } | undefined;
 
@@ -106,6 +119,7 @@ export function streamByWeixinRequest(
   return new Promise<void>((resolve, reject) => {
     let buffer = "";
     let failed = false;
+    let finished = false;
 
     const task = wxRef.request({
       url,
@@ -115,19 +129,41 @@ export function streamByWeixinRequest(
       responseType: "arraybuffer",
       header: headers,
       success: () => {
-        if (!failed) {
+        if (!failed && !finished) {
           resolve();
         }
       },
       fail: (error: { errMsg?: string }) => {
+        if (finished && error.errMsg?.includes("abort")) {
+          return;
+        }
         failed = true;
         reject(new Error(error.errMsg || "Streaming request failed"));
       },
     });
 
     task.onChunkReceived?.((result) => {
-      buffer += decodeArrayBuffer(result.data);
-      buffer = parseBuffer(buffer, handlers.onMessage);
+      try {
+        buffer += decodeArrayBuffer(result.data);
+        buffer = parseBuffer(buffer, (payload) => {
+          handlers.onMessage(payload);
+          if (payload.type === "done") {
+            finished = true;
+            resolve();
+            task.abort?.();
+            return;
+          }
+          if (payload.type === "error") {
+            failed = true;
+            reject(new Error(payload.message || "Streaming failed"));
+            task.abort?.();
+          }
+        });
+      } catch (error) {
+        failed = true;
+        reject(error instanceof Error ? error : new Error("Streaming parsing failed"));
+        task.abort?.();
+      }
     });
   });
 }
