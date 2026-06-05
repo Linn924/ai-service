@@ -50,3 +50,16 @@ export function request<T>({ path, method = "POST", data }: RequestOptions) {
 }
 
 export { API_BASE };
+
+export function getAuthHeaders() {
+  const user = getStoredUser();
+
+  return {
+    "Content-Type": "application/json",
+    ...(user?.token
+      ? {
+          Authorization: `Bearer ${user.token}`,
+        }
+      : {}),
+  };
+}

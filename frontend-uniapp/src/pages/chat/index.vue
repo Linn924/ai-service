@@ -1,8 +1,9 @@
 <script setup lang="ts">
 import { computed, nextTick, ref } from "vue";
 import { onLoad } from "@dcloudio/uni-app";
-import { askQuestion } from "@/api/chat";
+import { askQuestionStream } from "@/api/chat";
 import { clearStoredUser, getStoredUser } from "@/utils/storage";
+import type { StreamPayload } from "@/utils/stream";
 
 type Message = {
   id: string;
@@ -21,7 +22,7 @@ const messages = ref<Message[]>([
   {
     id: "welcome",
     role: "assistant",
-    content: "你好，我是你的智能客服助手。你可以直接提问，我会通过后端调用 Dify 知识库来回答。",
+    content: "你好，我是你的智能客服助手。你可以直接提问，我会通过后端流式转发 Dify 的回答。",
     source: "system",
   },
 ]);
@@ -49,36 +50,57 @@ async function handleSend() {
   }
 
   const userId = `user-${Date.now()}`;
+  const assistantId = `assistant-${Date.now()}`;
+
   messages.value.push({
     id: userId,
     role: "user",
     content: text,
   });
+  messages.value.push({
+    id: assistantId,
+    role: "assistant",
+    content: "",
+    source: "dify",
+  });
+
   draft.value = "";
   error.value = "";
   loading.value = true;
-  syncScroll(userId);
+  syncScroll(assistantId);
 
   try {
-    const reply = await askQuestion({
+    await askQuestionStream({
       query: text,
       conversationId: conversationId.value,
       userId: user.value.username,
-    });
+    }, (payload: StreamPayload) => {
+      if (payload.conversationId) {
+        conversationId.value = payload.conversationId;
+      }
 
-    if (reply.conversationId) {
-      conversationId.value = reply.conversationId;
-    }
+      if (payload.type === "delta") {
+        messages.value = messages.value.map((message) => {
+          if (message.id !== assistantId) {
+            return message;
+          }
 
-    const assistantId = reply.messageId || `assistant-${Date.now()}`;
-    messages.value.push({
-      id: assistantId,
-      role: "assistant",
-      content: reply.answer,
-      source: reply.source || "dify",
+          return {
+            ...message,
+            content: `${message.content}${payload.delta || ""}`,
+            source: payload.source || message.source,
+          };
+        });
+        syncScroll(assistantId);
+        return;
+      }
+
+      if (payload.type === "error") {
+        throw new Error(payload.message || "Streaming failed");
+      }
     });
-    syncScroll(assistantId);
   } catch (err) {
+    messages.value = messages.value.filter((message) => message.id !== assistantId || message.content);
     error.value = err instanceof Error ? err.message : "发送失败";
   } finally {
     loading.value = false;
@@ -136,15 +158,8 @@ function handleLogout() {
       >
         <view class="avatar">{{ message.role === "user" ? "我" : "AI" }}</view>
         <view class="bubble">
-          <text class="content">{{ message.content }}</text>
+          <text class="content">{{ message.content || "..." }}</text>
           <text v-if="message.source" class="source">source: {{ message.source }}</text>
-        </view>
-      </view>
-
-      <view v-if="loading" id="loading-anchor" class="message assistant">
-        <view class="avatar">AI</view>
-        <view class="bubble thinking">
-          <text class="content">正在检索知识库并生成回答...</text>
         </view>
       </view>
     </scroll-view>
@@ -160,7 +175,7 @@ function handleLogout() {
         placeholder="输入问题，例如：这个产品支持哪些售后服务？"
       />
       <button class="send-btn" :disabled="loading || !draft.trim()" @click="handleSend">
-        发送
+        {{ loading ? "生成中..." : "发送" }}
       </button>
     </view>
   </view>
@@ -326,10 +341,6 @@ function handleLogout() {
   margin-top: 10rpx;
   font-size: 22rpx;
   color: #66748e;
-}
-
-.thinking {
-  border: 2rpx dashed #b7c7ea;
 }
 
 .error {

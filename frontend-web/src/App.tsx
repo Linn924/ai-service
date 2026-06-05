@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react'
 import type { FormEvent } from 'react'
 import './App.css'
+import { postSse, type StreamPayload } from './sse'
 
 type User = {
   token: string
@@ -27,7 +28,7 @@ async function requestJson<T>(path: string, body: unknown): Promise<T> {
   })
   const result = await response.json()
   if (!response.ok || result.code !== 200) {
-    throw new Error(result.msg || '请求失败')
+    throw new Error(result.msg || 'Request failed')
   }
   return result.data as T
 }
@@ -44,7 +45,7 @@ function App() {
     {
       id: 'hello',
       role: 'assistant',
-      content: '你好，我是本地智能客服助手。你可以先问一个和知识库有关的问题，我会通过后端接口转发给 Dify。',
+      content: '你好，我是本地智能客服助手。你可以直接提问，我会通过后端流式转发 Dify 的回答。',
       source: 'system',
     },
   ])
@@ -64,7 +65,7 @@ function App() {
       const data = await requestJson<User>('/api/auth/login', { username, password })
       setUser(data)
     } catch (err) {
-      setError(err instanceof Error ? err.message : '登录失败')
+      setError(err instanceof Error ? err.message : 'Login failed')
     } finally {
       setLoading(false)
     }
@@ -80,37 +81,54 @@ function App() {
       role: 'user',
       content: text,
     }
-    setMessages((items) => [...items, userMessage])
+    const assistantId = crypto.randomUUID()
+
+    setMessages((items) => [
+      ...items,
+      userMessage,
+      {
+        id: assistantId,
+        role: 'assistant',
+        content: '',
+        source: 'dify',
+      },
+    ])
     setQuestion('')
     setError('')
     setLoading(true)
 
     try {
-      const data = await requestJson<{
-        answer: string
-        conversationId?: string
-        messageId?: string
-        source?: string
-      }>('/api/ai/chat', {
+      await postSse(`${API_BASE}/api/ai/chat/stream`, {
         query: text,
         conversationId,
         userId: user?.username || 'web-user',
-      })
+      }, (payload: StreamPayload) => {
+        if (payload.conversationId) {
+          setConversationId(payload.conversationId)
+        }
 
-      if (data.conversationId) {
-        setConversationId(data.conversationId)
-      }
-      setMessages((items) => [
-        ...items,
-        {
-          id: data.messageId || crypto.randomUUID(),
-          role: 'assistant',
-          content: data.answer,
-          source: data.source,
-        },
-      ])
+        if (payload.type === 'delta') {
+          setMessages((items) => items.map((message) => {
+            if (message.id !== assistantId) {
+              return message
+            }
+
+            return {
+              ...message,
+              content: `${message.content}${payload.delta || ''}`,
+              source: payload.source || message.source,
+            }
+          }))
+          return
+        }
+
+        if (payload.type === 'error') {
+          throw new Error(payload.message || 'Streaming failed')
+        }
+      })
     } catch (err) {
-      setError(err instanceof Error ? err.message : '问答请求失败')
+      setMessages((items) => items.filter((message) => message.id !== assistantId || message.content))
+      setError(err instanceof Error ? err.message : 'Chat request failed')
     } finally {
       setLoading(false)
     }
@@ -119,24 +137,24 @@ function App() {
   if (!user) {
     return (
       <main className="login-shell">
-        <section className="login-visual" aria-label="项目概览">
+        <section className="login-visual" aria-label="Project overview">
           <div className="signal-board">
-            <span>本地知识库</span>
+            <span>Local Knowledge Base</span>
             <strong>Dify + RuoYi</strong>
             <small>Mini Program AI Support</small>
           </div>
           <div className="pipeline">
-            <i>小程序</i>
-            <i>后端接口</i>
+            <i>Mini Program</i>
+            <i>Backend API</i>
             <i>Dify</i>
-            <i>云模型</i>
+            <i>Streaming Reply</i>
           </div>
         </section>
 
         <section className="login-panel">
           <p className="eyebrow">Local Development</p>
           <h1>智能客服工作台</h1>
-          <p className="intro">先完成用户端登录和问答界面，本地后端负责封装 Dify API。</p>
+          <p className="intro">当前版本已经接入流式问答，可以直接验证打字机效果。</p>
           <form onSubmit={handleLogin} className="login-form">
             <label>
               账号
@@ -161,7 +179,7 @@ function App() {
           <span>AI</span>
           <div>
             <strong>客服助手</strong>
-            <small>本地开发版</small>
+            <small>流式应答版</small>
           </div>
         </div>
         <button className="new-chat" onClick={() => {
@@ -173,7 +191,7 @@ function App() {
         <div className="session-list">
           <p>当前会话</p>
           <button className="session active">
-            <span>知识库问答测试</span>
+            <span>知识库问答演示</span>
             <small>{conversationId || '尚未连接 Dify 会话'}</small>
           </button>
         </div>
@@ -196,17 +214,11 @@ function App() {
             <article key={message.id} className={`message ${message.role}`}>
               <div className="avatar">{message.role === 'user' ? '我' : 'AI'}</div>
               <div className="bubble">
-                <p>{message.content}</p>
+                <p>{message.content || '...'}</p>
                 {message.source && <small>source: {message.source}</small>}
               </div>
             </article>
           ))}
-          {loading && user && (
-            <article className="message assistant">
-              <div className="avatar">AI</div>
-              <div className="bubble thinking">正在检索知识库并生成回答...</div>
-            </article>
-          )}
         </section>
 
         {error && <p className="error inline">{error}</p>}
@@ -218,7 +230,7 @@ function App() {
             placeholder="输入客户问题，例如：这个产品的售后政策是什么？"
           />
           <button type="submit" disabled={loading || !question.trim()}>
-            发送
+            {loading ? '生成中...' : '发送'}
           </button>
         </form>
       </section>
