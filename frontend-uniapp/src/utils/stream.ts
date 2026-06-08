@@ -12,6 +12,11 @@ type StreamHandlers = {
   onMessage: (payload: StreamPayload) => void;
 };
 
+export type StreamTask = {
+  promise: Promise<void>;
+  cancel: () => void;
+};
+
 function parseBlock(block: string) {
   const dataLines = block
     .split("\n")
@@ -56,7 +61,7 @@ export async function streamByFetch(
   url: string,
   body: unknown,
   handlers: StreamHandlers,
-) {
+) : Promise<void> {
   const response = await fetch(url, {
     method: "POST",
     headers: {
@@ -104,7 +109,7 @@ export function streamByWeixinRequest(
   body: Record<string, unknown>,
   headers: Record<string, string>,
   handlers: StreamHandlers,
-) {
+) : StreamTask {
   const wxRef = (globalThis as Record<string, unknown>).wx as {
     request: (options: Record<string, unknown>) => {
       onChunkReceived?: (callback: (result: { data: ArrayBuffer }) => void) => void;
@@ -116,12 +121,15 @@ export function streamByWeixinRequest(
     throw new Error("Current environment does not support Weixin chunked requests");
   }
 
-  return new Promise<void>((resolve, reject) => {
+  let task: { onChunkReceived?: (callback: (result: { data: ArrayBuffer }) => void) => void; abort?: () => void } | null = null;
+  let cancelled = false;
+
+  const promise = new Promise<void>((resolve, reject) => {
     let buffer = "";
     let failed = false;
     let finished = false;
 
-    const task = wxRef.request({
+    task = wxRef.request({
       url,
       method: "POST",
       data: body,
@@ -129,11 +137,15 @@ export function streamByWeixinRequest(
       responseType: "arraybuffer",
       header: headers,
       success: () => {
-        if (!failed && !finished) {
+        if (!failed && !finished && !cancelled) {
           resolve();
         }
       },
       fail: (error: { errMsg?: string }) => {
+        if (cancelled) {
+          resolve();
+          return;
+        }
         if (finished && error.errMsg?.includes("abort")) {
           return;
         }
@@ -150,20 +162,96 @@ export function streamByWeixinRequest(
           if (payload.type === "done") {
             finished = true;
             resolve();
-            task.abort?.();
+            task?.abort?.();
             return;
           }
           if (payload.type === "error") {
             failed = true;
             reject(new Error(payload.message || "Streaming failed"));
-            task.abort?.();
+            task?.abort?.();
           }
         });
       } catch (error) {
         failed = true;
         reject(error instanceof Error ? error : new Error("Streaming parsing failed"));
-        task.abort?.();
+        task?.abort?.();
       }
     });
   });
+
+  return {
+    promise,
+    cancel: () => {
+      cancelled = true;
+      task?.abort?.();
+    },
+  };
+}
+
+export function streamByFetchTask(
+  url: string,
+  body: unknown,
+  handlers: StreamHandlers,
+): StreamTask {
+  const abortController = new AbortController();
+  let cancelled = false;
+
+  const promise = (async () => {
+    const response = await fetch(url, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(body),
+      signal: abortController.signal,
+    });
+
+    if (!response.ok || !response.body) {
+      throw new Error(`Request failed: ${response.status}`);
+    }
+
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder();
+    let buffer = "";
+    let finished = false;
+
+    const handlePayload = (payload: StreamPayload) => {
+      handlers.onMessage(payload);
+      if (payload.type === "done") {
+        finished = true;
+        void reader.cancel();
+      }
+      if (payload.type === "error") {
+        throw new Error(payload.message || "Streaming failed");
+      }
+    };
+
+    try {
+      while (!finished && !cancelled) {
+        const { done, value } = await reader.read();
+        buffer += decoder.decode(value || new Uint8Array(), { stream: !done });
+        buffer = parseBuffer(buffer, handlePayload);
+
+        if (done) {
+          if (buffer.trim()) {
+            buffer = parseBuffer(`${buffer}\n\n`, handlePayload);
+          }
+          break;
+        }
+      }
+    } catch (error) {
+      if (cancelled) {
+        return;
+      }
+      throw error;
+    }
+  })();
+
+  return {
+    promise,
+    cancel: () => {
+      cancelled = true;
+      abortController.abort();
+    },
+  };
 }

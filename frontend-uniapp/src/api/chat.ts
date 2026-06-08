@@ -1,5 +1,5 @@
 import { API_BASE, getAuthHeaders, request } from "@/utils/request";
-import { streamByFetch, streamByWeixinRequest, type StreamPayload } from "@/utils/stream";
+import { streamByFetchTask, streamByWeixinRequest, type StreamPayload, type StreamTask } from "@/utils/stream";
 
 export type ChatReply = {
   answer: string;
@@ -26,7 +26,7 @@ export function askQuestionStream(
     userId: string;
   },
   onMessage: (payload: StreamPayload) => void,
-) {
+) : StreamTask {
   const url = `${API_BASE}/api/ai/chat/stream`;
   const headers = getAuthHeaders();
 
@@ -35,6 +35,6 @@ export function askQuestionStream(
   // #endif
 
   // #ifndef MP-WEIXIN
-  return streamByFetch(url, data, { onMessage });
+  return streamByFetchTask(url, data, { onMessage });
   // #endif
 }
