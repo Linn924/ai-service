@@ -1,12 +1,27 @@
 $ErrorActionPreference = "Stop"
 
 $Root = Split-Path -Parent $PSScriptRoot
-$ComposeFile = Join-Path $Root "dev-infra\docker-compose.yml"
+$MemuraiRoot = "D:\AI\tools\Memurai"
+$MemuraiExe = Join-Path $MemuraiRoot "memurai.exe"
+$MemuraiConfig = Join-Path $MemuraiRoot "memurai.conf"
 $RedisPort = 6379
-$RedisContainerName = "ai-kefu-redis"
+$RedisDataDir = "D:\AI\tools\memurai-data"
+$RedisLogsDir = "D:\AI\tools\memurai-logs"
 
-if (!(Test-Path $ComposeFile)) {
-    throw "Docker compose file not found: $ComposeFile"
+if (!(Test-Path $MemuraiExe)) {
+    throw "Memurai executable not found: $MemuraiExe"
+}
+
+if (!(Test-Path $MemuraiConfig)) {
+    throw "Memurai config not found: $MemuraiConfig"
+}
+
+if (!(Test-Path $RedisDataDir)) {
+    New-Item -ItemType Directory -Force -Path $RedisDataDir | Out-Null
+}
+
+if (!(Test-Path $RedisLogsDir)) {
+    New-Item -ItemType Directory -Force -Path $RedisLogsDir | Out-Null
 }
 
 $listener = Get-NetTCPConnection -LocalPort $RedisPort -State Listen -ErrorAction SilentlyContinue | Select-Object -First 1
@@ -15,21 +30,18 @@ if ($listener) {
     exit 0
 }
 
-$dockerContainer = docker ps -a --filter "name=^${RedisContainerName}$" --format "{{.Names}}"
-if ($dockerContainer -contains $RedisContainerName) {
-    docker start $RedisContainerName | Out-Null
-} else {
-    docker compose -f $ComposeFile up -d redis
-}
-
-docker compose -f $ComposeFile ps redis
+Start-Process `
+    -FilePath $MemuraiExe `
+    -ArgumentList $MemuraiConfig `
+    -WorkingDirectory $MemuraiRoot `
+    -WindowStyle Hidden | Out-Null
 
 Start-Sleep -Seconds 3
 
 $listener = Get-NetTCPConnection -LocalPort $RedisPort -State Listen -ErrorAction SilentlyContinue | Select-Object -First 1
 if ($listener) {
-    Write-Host "Redis started successfully on port $RedisPort."
+    Write-Host "Memurai Redis started successfully on port $RedisPort."
     exit 0
 }
 
-throw "Redis did not start successfully."
+throw "Memurai Redis did not start successfully."

@@ -2,7 +2,6 @@ $ErrorActionPreference = "Stop"
 
 $Root = Split-Path -Parent $PSScriptRoot
 $DifyComposeFile = "D:\AI\dify-src\dify-main\docker\docker-compose.yaml"
-$DevInfraComposeFile = Join-Path $Root "dev-infra\docker-compose.yml"
 
 function Stop-ProcessesByQuery {
     param(
@@ -51,13 +50,6 @@ if (Test-Path $DifyComposeFile) {
 }
 
 Write-Host ""
-Write-Host "Stopping project Redis container..."
-if (Test-Path $DevInfraComposeFile) {
-    docker compose -f $DevInfraComposeFile stop redis | Out-Null
-    Write-Host "Project Redis stopped."
-}
-
-Write-Host ""
 Write-Host "Stopping Ollama..."
 $ollamaListener = Get-NetTCPConnection -LocalPort 11434 -State Listen -ErrorAction SilentlyContinue | Select-Object -First 1
 if ($ollamaListener) {
@@ -69,6 +61,23 @@ if ($ollamaListener) {
     }
 } else {
     Write-Host "Ollama is not running."
+}
+
+Write-Host ""
+Write-Host "Stopping native Redis..."
+$memuraiProcesses = Get-CimInstance Win32_Process -Filter "name = 'memurai.exe'" |
+    Where-Object { $_.ExecutablePath -like "D:\AI\tools\Memurai*" }
+if ($memuraiProcesses) {
+    foreach ($process in $memuraiProcesses) {
+        try {
+            Stop-Process -Id $process.ProcessId -Force -ErrorAction Stop
+            Write-Host "Stopped Memurai Redis (PID: $($process.ProcessId))."
+        } catch {
+            Write-Warning "Failed to stop Memurai Redis (PID: $($process.ProcessId)): $($_.Exception.Message)"
+        }
+    }
+} else {
+    Write-Host "Memurai Redis is not running."
 }
 
 Write-Host ""

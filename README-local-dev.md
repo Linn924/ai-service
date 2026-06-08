@@ -4,8 +4,8 @@
 
 - `backend-ruoyi`: RuoYi Spring Boot backend with AI customer-service API extensions.
 - `frontend-uniapp`: uni-app mini-program client for Weixin delivery.
-- `dev-infra`: Optional Docker Compose infra files kept for reference.
-- `docker-data`: Runtime data for the standalone Redis dev container, kept on D drive.
+- `scripts`: local startup and status scripts.
+- `deploy`: production deployment configuration examples.
 
 ## Local storage policy
 
@@ -18,8 +18,10 @@ This development setup keeps project files and heavy runtime data on D drive whe
 - npm cache: `D:\AI\tools\npm-cache`
 - MySQL program: `D:\AI\tools\mysql-8.4`
 - MySQL data: `D:\AI\tools\mysql-data`
+- Redis program: `D:\AI\tools\Memurai`
+- Redis data: `D:\AI\tools\memurai-data`
+- Redis logs: `D:\AI\tools\memurai-logs`
 - Backend logs: `D:\AI\ai-customer-service\logs`
-- Redis container data: `D:\AI\ai-customer-service\docker-data\redis`
 - Docker Desktop WSL data: `D:\DockerData\wsl`
 
 `C:\Users\linn9\AppData\Local\Docker\wsl` is a Windows junction pointing to `D:\DockerData\wsl`, so Docker's large virtual disks are stored on D drive.
@@ -66,7 +68,6 @@ If you want to run parts manually, the scripts are:
 - `scripts/start-dify.ps1`
 - `scripts/start-backend.ps1`
 - `scripts/start-uniapp.ps1`
-- `scripts/start-docker.ps1`
 
 ## Development API
 
@@ -86,6 +87,16 @@ ai:
 ```
 
 The frontend still calls only the RuoYi backend. The backend is the only place that talks to Dify.
+
+## Native Redis
+
+Local Redis now uses native Memurai on Windows instead of a Docker Redis container.
+
+- executable: `D:\AI\tools\Memurai\memurai.exe`
+- config: `D:\AI\tools\Memurai\memurai.conf`
+- port: `127.0.0.1:6379`
+
+`scripts/start-redis.ps1` starts Memurai directly.
 
 ## Mini-program output
 
@@ -111,5 +122,4 @@ Background startup logs are written to:
 - `D:\AI\ai-customer-service\logs\backend-run.err.log`
 - `D:\AI\ai-customer-service\logs\uniapp-run.out.log`
 - `D:\AI\ai-customer-service\logs\uniapp-run.err.log`
-- `D:\AI\ai-customer-service\logs\frontend-run.out.log`
-- `D:\AI\ai-customer-service\logs\frontend-run.err.log`
+- `D:\AI\tools\memurai-logs\memurai.log`

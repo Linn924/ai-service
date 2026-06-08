@@ -28,8 +28,8 @@ The frontend never calls Dify directly. All AI requests go through the backend s
 - `backend-ruoyi`: Spring Boot + RuoYi backend
 - `frontend-uniapp`: uni-app mini-program client
 - `scripts`: local startup, stop, and status scripts
-- `dev-infra`: optional infrastructure references
-- `docker-data`: local Redis runtime data
+- `deploy`: production deployment files
+- `docs`: project notes and release instructions
 - `logs`: backend and frontend startup logs
 
 ## Local quick start
@@ -121,6 +121,7 @@ That means you can switch from a local model to DeepSeek later without changing 
 ## Notes
 
 - This repository is for source management and local development.
+- Local development uses native MySQL and native Redis on Windows. Docker is mainly used for Dify.
 - Real mini-program release still happens in Weixin DevTools and the Weixin admin platform.
 - Keep `.dify-app-key`, database passwords, and production secrets out of Git.
 - See `README-local-dev.md` for more detailed local environment notes.
