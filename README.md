@@ -5,7 +5,7 @@ AI customer service project for a Weixin mini-program, with a Spring Boot backen
 ## Architecture
 
 ```text
-Weixin Mini Program / Web
+Weixin Mini Program
   -> RuoYi backend
   -> Dify API
   -> Knowledge base / vector store / model provider
@@ -27,7 +27,6 @@ The frontend never calls Dify directly. All AI requests go through the backend s
 
 - `backend-ruoyi`: Spring Boot + RuoYi backend
 - `frontend-uniapp`: uni-app mini-program client
-- `frontend-web`: React + Vite web client for local verification
 - `scripts`: local startup, stop, and status scripts
 - `dev-infra`: optional infrastructure references
 - `docker-data`: local Redis runtime data
@@ -46,7 +45,6 @@ If you want to force a specific frontend target:
 
 ```powershell
 .\scripts\start-local.ps1 -FrontendTarget uniapp
-.\scripts\start-local.ps1 -FrontendTarget web
 .\scripts\start-local.ps1 -FrontendTarget none
 ```
 
@@ -66,7 +64,7 @@ Useful companion scripts:
 3. Ollama
 4. Dify
 5. RuoYi backend
-6. Frontend (`frontend-uniapp` preferred in `auto` mode, otherwise `frontend-web`)
+6. Frontend (`frontend-uniapp` in `auto` mode)
 
 Default service addresses:
 
@@ -75,7 +73,6 @@ Default service addresses:
 - MySQL: `127.0.0.1:3306`
 - Redis: `127.0.0.1:6379`
 - Ollama: `http://127.0.0.1:11434`
-- Frontend Web: `http://127.0.0.1:5173`
 
 ## Mini-program development
 

@@ -1,5 +1,5 @@
 param(
-    [ValidateSet("auto", "uniapp", "web", "none")]
+    [ValidateSet("auto", "uniapp", "none")]
     [string]$FrontendTarget = "auto"
 )
 
@@ -8,7 +8,6 @@ $ErrorActionPreference = "Stop"
 $Root = Split-Path -Parent $PSScriptRoot
 $LogsDir = Join-Path $Root "logs"
 $BackendScript = Join-Path $PSScriptRoot "start-backend.ps1"
-$FrontendWebScript = Join-Path $PSScriptRoot "start-frontend.ps1"
 $FrontendUniappScript = Join-Path $PSScriptRoot "start-uniapp.ps1"
 
 if (!(Test-Path $LogsDir)) {
@@ -66,11 +65,6 @@ function Resolve-FrontendTarget {
         return "uniapp"
     }
 
-    $webPackage = Join-Path $Root "frontend-web\package.json"
-    if (Test-Path $webPackage) {
-        return "web"
-    }
-
     return "none"
 }
 
@@ -103,16 +97,6 @@ switch ($resolvedFrontendTarget) {
             Start-BackgroundScript -ScriptPath $FrontendUniappScript -OutLog $frontendOutLog -ErrLog $frontendErrLog -DisplayName "Uni-app"
         }
     }
-    "web" {
-        Write-Host "Detected web frontend. Starting frontend-web..."
-        $frontendOutLog = Join-Path $LogsDir "frontend-run.out.log"
-        $frontendErrLog = Join-Path $LogsDir "frontend-run.err.log"
-        if (Test-ProcessPatterns -ProcessName "node.exe" -Patterns @("frontend-web")) {
-            Write-Host "Frontend Web is already running. Skipping duplicate start."
-        } else {
-            Start-BackgroundScript -ScriptPath $FrontendWebScript -OutLog $frontendOutLog -ErrLog $frontendErrLog -DisplayName "Frontend Web"
-        }
-    }
     default {
         Write-Warning "No frontend target was selected. Skipping frontend startup."
     }
@@ -127,7 +111,4 @@ Write-Host "Redis: 127.0.0.1:6379"
 Write-Host "Ollama: http://127.0.0.1:11434"
 if ($resolvedFrontendTarget -eq "uniapp") {
     Write-Host "Uni-app output: D:\AI\ai-customer-service\frontend-uniapp\dist\dev\mp-weixin"
-}
-if ($resolvedFrontendTarget -eq "web") {
-    Write-Host "Frontend Web: http://127.0.0.1:5173"
 }

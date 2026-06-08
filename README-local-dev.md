@@ -2,8 +2,8 @@
 
 ## Project layout
 
-- `frontend-web`: React + Vite user-facing login and chat UI.
 - `backend-ruoyi`: RuoYi Spring Boot backend with AI customer-service API extensions.
+- `frontend-uniapp`: uni-app mini-program client for Weixin delivery.
 - `dev-infra`: Optional Docker Compose infra files kept for reference.
 - `docker-data`: Runtime data for the standalone Redis dev container, kept on D drive.
 
@@ -37,7 +37,6 @@ Force a frontend target when needed:
 
 ```powershell
 .\scripts\start-local.ps1 -FrontendTarget uniapp
-.\scripts\start-local.ps1 -FrontendTarget web
 .\scripts\start-local.ps1 -FrontendTarget none
 ```
 
@@ -57,7 +56,7 @@ Useful companion scripts:
 3. `start-ollama.ps1`
 4. `start-dify.ps1`
 5. `start-backend.ps1`
-6. `start-uniapp.ps1` or `start-frontend.ps1`
+6. `start-uniapp.ps1`
 
 If you want to run parts manually, the scripts are:
 
@@ -67,7 +66,6 @@ If you want to run parts manually, the scripts are:
 - `scripts/start-dify.ps1`
 - `scripts/start-backend.ps1`
 - `scripts/start-uniapp.ps1`
-- `scripts/start-frontend.ps1`
 - `scripts/start-docker.ps1`
 
 ## Development API

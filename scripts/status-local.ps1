@@ -3,7 +3,7 @@ $ErrorActionPreference = "Stop"
 $Root = Split-Path -Parent $PSScriptRoot
 $DifyComposeFile = "D:\AI\dify-src\dify-main\docker\docker-compose.yaml"
 $DevInfraComposeFile = Join-Path $Root "dev-infra\docker-compose.yml"
-$Ports = @(80, 8080, 3306, 6379, 11434, 5173)
+$Ports = @(80, 8080, 3306, 6379, 11434)
 
 function Get-PortStatus {
     param(
@@ -36,7 +36,6 @@ $portStatuses = @(
     (Get-PortStatus -Port 3306 -Name "MySQL")
     (Get-PortStatus -Port 6379 -Name "Redis")
     (Get-PortStatus -Port 11434 -Name "Ollama")
-    (Get-PortStatus -Port 5173 -Name "Frontend Web")
 )
 $portStatuses | Format-Table -AutoSize
 
@@ -46,7 +45,6 @@ Get-CimInstance Win32_Process |
     Where-Object {
         ($_.Name -eq "java.exe" -and ($_.CommandLine -like "*backend-ruoyi\ruoyi-admin*" -or $_.CommandLine -like "*com.ruoyi.RuoYiApplication*")) -or
         ($_.Name -eq "node.exe" -and ($_.CommandLine -like "*frontend-uniapp*" -or $_.CommandLine -like "*mp-weixin*")) -or
-        ($_.Name -eq "node.exe" -and $_.CommandLine -like "*frontend-web*") -or
         ($_.Name -eq "mysqld.exe" -and $_.ExecutablePath -eq "D:\AI\tools\mysql-8.4\mysql-8.4.9-winx64\bin\mysqld.exe")
     } |
     Select-Object Name, ProcessId, ExecutablePath, CommandLine |
@@ -71,8 +69,6 @@ $logFiles = @(
     "logs\backend-run.err.log",
     "logs\uniapp-run.out.log",
     "logs\uniapp-run.err.log",
-    "logs\frontend-run.out.log",
-    "logs\frontend-run.err.log",
     "logs\ollama.err.log"
 )
 

@@ -38,7 +38,6 @@ function Stop-ProcessesByQuery {
 
 Write-Host "Stopping frontend processes..."
 Stop-ProcessesByQuery -ProcessName "node.exe" -Patterns @("frontend-uniapp", "mp-weixin") -DisplayName "Uni-app"
-Stop-ProcessesByQuery -ProcessName "node.exe" -Patterns @("frontend-web") -DisplayName "Frontend Web"
 
 Write-Host ""
 Write-Host "Stopping backend..."
