@@ -24,30 +24,57 @@ This development setup keeps project files and heavy runtime data on D drive whe
 
 `C:\Users\linn9\AppData\Local\Docker\wsl` is a Windows junction pointing to `D:\DockerData\wsl`, so Docker's large virtual disks are stored on D drive.
 
-## Start order
+## Recommended local startup
 
-1. Start local MySQL and Redis:
-
-```powershell
-D:\AI\ai-customer-service\scripts\start-dev-infra.ps1
-```
-
-2. Start the RuoYi backend:
+Use the integrated startup script from the project root:
 
 ```powershell
-D:\AI\ai-customer-service\scripts\start-backend.ps1
+cd D:\AI\ai-customer-service
+.\scripts\start-local.ps1
 ```
 
-3. Start the frontend:
+Force a frontend target when needed:
 
 ```powershell
-D:\AI\ai-customer-service\scripts\start-frontend.ps1
+.\scripts\start-local.ps1 -FrontendTarget uniapp
+.\scripts\start-local.ps1 -FrontendTarget web
+.\scripts\start-local.ps1 -FrontendTarget none
 ```
+
+Useful companion scripts:
+
+```powershell
+.\scripts\status-local.ps1
+.\scripts\stop-local.ps1
+```
+
+## Startup order
+
+`start-local.ps1` starts services in this order:
+
+1. `start-mysql.ps1`
+2. `start-redis.ps1`
+3. `start-ollama.ps1`
+4. `start-dify.ps1`
+5. `start-backend.ps1`
+6. `start-uniapp.ps1` or `start-frontend.ps1`
+
+If you want to run parts manually, the scripts are:
+
+- `scripts/start-mysql.ps1`
+- `scripts/start-redis.ps1`
+- `scripts/start-ollama.ps1`
+- `scripts/start-dify.ps1`
+- `scripts/start-backend.ps1`
+- `scripts/start-uniapp.ps1`
+- `scripts/start-frontend.ps1`
+- `scripts/start-docker.ps1`
 
 ## Development API
 
 - `POST /api/auth/login`: local development login.
-- `POST /api/ai/chat`: chat endpoint. It returns a mock answer until `ai.dify.api-key` is configured in `backend-ruoyi/ruoyi-admin/src/main/resources/application.yml`.
+- `POST /api/ai/chat`: chat endpoint for standard request/response.
+- `POST /api/ai/chat/stream`: SSE-style streaming chat endpoint used by the mini-program chat page.
 
 ## Dify switch
 
@@ -61,3 +88,30 @@ ai:
 ```
 
 The frontend still calls only the RuoYi backend. The backend is the only place that talks to Dify.
+
+## Mini-program output
+
+Build the mini-program locally:
+
+```powershell
+cd D:\AI\ai-customer-service\frontend-uniapp
+npm install
+npm run build:mp-weixin
+```
+
+Import this directory into Weixin DevTools:
+
+```text
+D:\AI\ai-customer-service\frontend-uniapp\dist\build\mp-weixin
+```
+
+## Logs
+
+Background startup logs are written to:
+
+- `D:\AI\ai-customer-service\logs\backend-run.out.log`
+- `D:\AI\ai-customer-service\logs\backend-run.err.log`
+- `D:\AI\ai-customer-service\logs\uniapp-run.out.log`
+- `D:\AI\ai-customer-service\logs\uniapp-run.err.log`
+- `D:\AI\ai-customer-service\logs\frontend-run.out.log`
+- `D:\AI\ai-customer-service\logs\frontend-run.err.log`
